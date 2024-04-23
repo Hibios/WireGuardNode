@@ -1,0 +1,29 @@
+version: '3'
+services:
+  keygen:
+    image: python:3.9
+    healthcheck:
+      test: bash -c "[ -f ./wg0.conf ]"
+      interval: 1s
+      timeout: 10s
+      retries: 120
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: bash -c "python -m pip install --upgrade pip --root-user-action=ignore && python -m pip install cryptography --root-user-action=ignore && python node_script.py"
+
+  wireguard:
+    image: linuxserver/wireguard:latest
+    volumes:
+      - ./wg0.conf:/config/wg0.conf
+      - ./init.sh:/init.sh
+    ports:
+      - 51820:51820/udp
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    depends_on:
+      keygen:
+        condition: service_healthy
+    command: ./init.sh
