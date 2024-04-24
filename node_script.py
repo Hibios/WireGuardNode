@@ -19,18 +19,21 @@ def generate_public_key(private_key):
 private_key, format_str = generate_private_key()
 public_key = generate_public_key(private_key)
 
+
 with open('wg0.conf', 'w') as f:
     f.write(f"""
 [Interface]
 PrivateKey = {format_str}
-Address = 10.0.0.1/24
+Address = 10.0.0.3/24
 ListenPort = 51820
 PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 
 [Peer]
 PublicKey = {public_key}
-AllowedIPs = 10.0.0.2/32
+AllowedIPs = 10.0.0.0/24
     """)
 
 print("Файл конфигурации wg0.conf для WireGuard создан.")
+while True:
+    time.sleep(1)

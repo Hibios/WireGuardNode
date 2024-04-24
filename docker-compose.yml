@@ -1,4 +1,3 @@
-version: '3'
 services:
   keygen:
     image: python:3.9
@@ -10,20 +9,37 @@ services:
     volumes:
       - .:/app
     working_dir: /app
-    command: bash -c "python -m pip install --upgrade pip --root-user-action=ignore && python -m pip install cryptography --root-user-action=ignore && python node_script.py"
-
+    command: bash -c "python -m pip install --upgrade pip --root-user-action=ignore && python -m pip install cryptography --root-user-action=ignore && python node_script.py && rm -f ./wg0.conf"
+  python-server:
+    image: python:3.9
+    network_mode: service:wireguard
+    volumes:
+      - ./start_server.py:/app/start_server.py
+    environment:
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
+    command: bash -c "python start_server.py"
+    depends_on:
+      wireguard:
+        condition: service_healthy
   wireguard:
     image: linuxserver/wireguard:latest
+    container_name: wireguard
     volumes:
       - ./wg0.conf:/config/wg0.conf
       - ./init.sh:/init.sh
+      - ./wg_client.conf:/wg_client.conf
     ports:
-      - 51820:51820/udp
+      - "51820:51820/udp"
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
-      - SYS_MODULE
     depends_on:
       keygen:
         condition: service_healthy
     command: ./init.sh
+    healthcheck:
+      test: bash -c "[ -f ./wg_client.conf ]"
+      interval: 1s
+      timeout: 10s
+      retries: 120
